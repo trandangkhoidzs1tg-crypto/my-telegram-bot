@@ -1,0 +1,232 @@
+from telethon import TelegramClient, events
+import asyncio
+import random
+import re
+
+# --- Cấu Hình ---
+API_ID = '34575380' # [cite: 1]
+API_HASH = 'e979c332c38c93a39e44d7ba49a98d1' # [cite: 1]
+ADMIN_ID = 8138175961 # [cite: 1]
+
+client = TelegramClient('dang_khoi_session', API_ID, API_HASH) # [cite: 1]
+
+# Biến trạng thái
+is_cam = False # [cite: 1]
+target_id = None # [cite: 1]
+is_spamming = False # [cite: 1]
+spam_speed = 0.5 # [cite: 1]
+
+# --- DANH SÁCH VAR ---
+VAR_LIST = [
+    "m coi cha sĩ nhục m nè:))", "th ngu đú:))", "ngôn ngữ tật ơi", "th ngu", 
+    "con đĩ mẹ m", "kh gõ cả nhà m die", "bố th tộc", "phố bẩn đú à", 
+    "treo với cha đê", "dit me m", "sua đi e", "delay à e",
+    "coi cha dit chet con di me m", "cha dit con gai me m từ trong nha ra tới đường",
+    "cha sĩ nhục cha dogg con gái mẹ m như con chó", "m hieu canh do kh th mo coi",
+    "cha choi cht cn di me m", "phố bẩn gặp cha no1 phải chết con ạ",
+    "th ngu spam đi", "thg đú đòi ăn cha à", "thời cha còn on meta thì bọn đú m ở đâu",
+    "thời cha còn bên meta cha dùng bot sĩ nhục bọn đua như m mà", "th ngu ơi",
+    "địt mẹ mi", "sủa cha coi", "bà già m die à.", "đú với cha kh coăn ei",
+    "con đĩ phố bẩn loạn ngôn chạy kìa", "rớt à em hw yếu v phố=))",
+    "th yếu đuối ei=)", "đàn bà à w=)", "123 rớt à ngôn đâu e=))",
+    "chó ngu 36 kìa=)", "chó ngu 🤪", "sủa nhiều lên", "đĩ cụ mày con chó",
+    "não ngu + tật nguyền hả e", "cào chậm thế e cào nhanh lên",
+    "tay cụt hay gì mà rặn ngôn lâu thế hả e", "chó ngu vậy",
+    "não tật hả hay gì mà rặn ngôn lâu thế", "tật hả e", "não thối hả",
+    "đĩ mẹ may ne con cho ngu", "đú với ai vậy e", "sao e tật ngôn thế",
+    "cào phím gì lâu vậy hả e", "buồn cười vcl", "hahahahahhaha",
+    "bại dưới tay dangkhoi", "m mẹ m bị t địt cho nác lồn đấy thg ngu",
+    "m có cay t kh hả", "mà m có cay thì cũng đâu làm gì được", "haha🤣🤣🤣",
+    "mẹ m có lồn thâm + vú nhỏ", "nhưng bú cu t nghệ lắm🤣🤣",
+    "dm m dậy mà var bố đi🤪🤪", "chạy đâu mất rồi thg ngu",
+    "dậy mà sủa nữa đi chứ e", "ủa dm m chạy rồi à thg bại não",
+    "dậy sủa đi chứ?", "biến nhanh v e", "thg bại não bại dưới tay a",
+    " dậy mà var a đi này thg ngu", "đã ngu rồi còn cào phím lâu vậy em?",
+    "đã ngu thì đừng có đi kiếm chuyện với người khác nhaa thg ngu",
+    "kẻo bọn nó vã cho m vỡ mồm🤣🤣"
+] # [cite: 1, 2, 3, 4]
+
+ICONS = ["😂", "🤣", "😭", "🙄", "💀", "🤡", "🖕", "👀", "🔥", "💩"] # [cite: 4]
+
+SP1_CONTENT = """🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧  
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧 
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧 
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁ 𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧
+
+🛸　　　 　🌎　°　　🌓　•　　.°•　　　🚀 ✯
+　　　★　*　　　　　°　　　　🛰 　°·　　 🪐
+.　　　•　° ★　• ☄▁▂▃▄▅▆▇▇▆▅▅▆▇▇▆▅▄▃▂▁𝐀𝐧𝐡 𝐋𝐚 𝐃𝐚𝐧𝐠 𝐊𝐡𝐨𝐢 𝐁𝐚 𝐒𝐚𝐧 𝐓𝐞𝐋𝐞 𝐁𝐨𝐧 𝐌𝐚𝐲 𝐓𝐮𝐨𝐢 𝐋𝐨𝐧""" # [cite: 5]
+
+# --- LỆNH HELP ---
+@client.on(events.NewMessage(pattern='/help', outgoing=True))
+async def help_cmd(event):
+    if event.sender_id != ADMIN_ID: # [cite: 17]
+        return
+    await event.edit("""『 𝐃𝐀𝐍𝐆 𝐊𝐇𝐎𝐈 𝐁𝐎𝐓 𝐕𝐀𝐑 』
+🔥 SPAM
+/var | /var @user
+/sp1
+/tag
+/icon
+/cam
+/uncam 
+
+🎮 CONTROL
+/dung
+/tocdo
+""") # [cite: 17]
+
+# --- LỆNH SP1 ---
+@client.on(events.NewMessage(pattern='/sp1', outgoing=True))
+async def sp1_cmd(event):
+    global is_spamming
+    if event.sender_id != ADMIN_ID: # [cite: 17]
+        return
+    is_spamming = True
+    await event.delete() # [cite: 17]
+    while is_spamming:
+        await client.send_message(event.chat_id, SP1_CONTENT) # [cite: 17]
+        await asyncio.sleep(spam_speed) # [cite: 18]
+
+# --- XỬ LÝ CAM (KHÔNG CẦN DẤU / HOẶC CÓ) ---
+@client.on(events.NewMessage(pattern=r'^/?cam$', outgoing=True))
+async def start_cam(event):
+    global is_cam, target_id
+    if event.sender_id != ADMIN_ID: # [cite: 18]
+        return
+    
+    reply = await event.get_reply_message() # [cite: 18]
+    if not reply:
+        await event.edit("❌ câm ai vậy aiu") # [cite: 18]
+        return
+    
+    target_id = reply.sender_id # [cite: 18]
+    is_cam = True # [cite: 18]
+    await event.edit(f"🔥 Đã khóa mõm ID: {target_id}") # [cite: 18]
+
+@client.on(events.NewMessage(pattern=r'^/?uncam$', outgoing=True))
+async def stop_cam(event):
+    global is_cam, target_id
+    if event.sender_id != ADMIN_ID: # [cite: 19]
+        return
+    
+    reply = await event.get_reply_message() # [cite: 19]
+    if reply and reply.sender_id == target_id: # [cite: 19]
+        is_cam = False # [cite: 19]
+        target_id = None # [cite: 19]
+        await event.edit("sủa đi e") # [cite: 19]
+    elif not reply: # [cite: 19]
+        is_cam = False # [cite: 19]
+        target_id = None # [cite: 19]
+        await event.edit("bth") # [cite: 19]
+    else:
+        await event.edit("Thằng này có bị câm đâu a Ken") # [cite: 20]
+
+# --- THỰC THI CẤM CHAT ---
+@client.on(events.NewMessage(incoming=True))
+async def cam_handler(event):
+    global is_cam, target_id
+    if is_cam and event.sender_id == target_id: # [cite: 20]
+        try:
+            await event.delete() # [cite: 20]
+        except:
+            pass # [cite: 20]
+
+# --- CÁC LỆNH SPAM KHÁC ---
+@client.on(events.NewMessage(pattern='/var', outgoing=True))
+async def var_cmd(event):
+    global is_spamming
+    if event.sender_id != ADMIN_ID: # [cite: 20]
+        return
+    is_spamming = True
+    args = event.message.text.split() # [cite: 20]
+    mention = args[1] if len(args) > 1 else "" # [cite: 20]
+    while is_spamming:
+        content = f"{random.choice(VAR_LIST)} {random.choice(ICONS)}" # [cite: 21]
+        await client.send_message(event.chat_id, f"{mention} {content}") # [cite: 21]
+        await asyncio.sleep(spam_speed) # [cite: 21]
+
+@client.on(events.NewMessage(pattern='/tag (.*)', outgoing=True))
+async def tag_cmd(event):
+    global is_spamming
+    if event.sender_id != ADMIN_ID: # [cite: 21]
+        return
+    target = event.pattern_match.group(1) # [cite: 21]
+    is_spamming = True
+    await event.delete() # [cite: 21]
+    while is_spamming:
+        content = f"{target} {random.choice(VAR_LIST)}" # [cite: 21]
+        await client.send_message(event.chat_id, content) # [cite: 21]
+        await asyncio.sleep(spam_speed) # [cite: 21]
+
+@client.on(events.NewMessage(pattern='/icon', outgoing=True))
+async def icon_cmd(event):
+    global is_spamming
+    if event.sender_id != ADMIN_ID: # [cite: 22]
+        return
+    is_spamming = True
+    while is_spamming:
+        await client.send_message(event.chat_id, random.choice(ICONS)) # [cite: 22]
+        await asyncio.sleep(spam_speed) # [cite: 22]
+
+@client.on(events.NewMessage(pattern='/tocdo (.*)', outgoing=True))
+async def speed_cmd(event):
+    global spam_speed
+    if event.sender_id != ADMIN_ID: # [cite: 22]
+        return
+    try:
+        spam_speed = float(event.pattern_match.group(1)) # [cite: 22]
+        await event.edit(f"⚡ Tốc độ: {spam_speed}s") # [cite: 22]
+    except:
+        pass
+
+@client.on(events.NewMessage(pattern='/dung', outgoing=True))
+async def stop_all(event):
+    global is_spamming
+    if event.sender_id != ADMIN_ID: # [cite: 23]
+        return
+    is_spamming = False # [cite: 23]
+    await event.edit("🔥 CAY A CHƯA E") # [cite: 23]
+
+print("BOT DANG KHOI ĐANG CHẠY...")
+client.start()
+client.run_until_disconnected()
